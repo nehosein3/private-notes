@@ -1,3 +1,4 @@
+```javascript
 const tg = window.Telegram?.WebApp || null;
 
 if (tg) {
@@ -17,14 +18,19 @@ const $ = (id) => document.getElementById(id);
 
 const notesList = $("notesList");
 const emptyState = $("emptyState");
-const notesView = $("notesView");
-const editorView = $("editorView");
+const editor = $("editor");
+
+const newBtn = $("newBtn");
+const emptyNewBtn = $("emptyNewBtn");
+const backBtn = $("backBtn");
+const doneBtn = $("doneBtn");
+const dirBtn = $("dirBtn");
+const deleteBtn = $("deleteBtn");
 
 const titleInput = $("titleInput");
 const bodyInput = $("bodyInput");
 const searchInput = $("searchInput");
 const countLabel = $("countLabel");
-const directionButton = $("directionButton");
 const savedLabel = $("savedLabel");
 
 function hasCloudStorage() {
@@ -37,42 +43,26 @@ function hasCloudStorage() {
 
 function cloudGet(key) {
   return new Promise((resolve, reject) => {
-    if (!hasCloudStorage()) {
-      reject(new Error("Telegram CloudStorage is not available."));
-      return;
-    }
-
     tg.CloudStorage.getItem(key, (error, value) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve(value || "");
-      }
+      if (error) reject(error);
+      else resolve(value || "");
     });
   });
 }
 
 function cloudSet(key, value) {
   return new Promise((resolve, reject) => {
-    if (!hasCloudStorage()) {
-      reject(new Error("Telegram CloudStorage is not available."));
-      return;
-    }
-
     tg.CloudStorage.setItem(key, value, (error, success) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve(success);
-      }
+      if (error) reject(error);
+      else resolve(success);
     });
   });
 }
 
 function loadLocalNotes() {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? JSON.parse(saved) : [];
+    const data = localStorage.getItem(STORAGE_KEY);
+    return data ? JSON.parse(data) : [];
   } catch {
     return [];
   }
@@ -81,37 +71,24 @@ function loadLocalNotes() {
 function saveLocalNotes() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
-  } catch {
-    // Ignore local storage errors.
-  }
+  } catch {}
 }
 
 async function loadNotes() {
   setSavedStatus("Loading...");
 
-  // When opened inside Telegram, use Telegram CloudStorage.
   if (hasCloudStorage()) {
     try {
-      const cloudData = await cloudGet(CLOUD_KEY);
+      const data = await cloudGet(CLOUD_KEY);
 
-      if (cloudData) {
-        const parsed = JSON.parse(cloudData);
-
-        if (Array.isArray(parsed)) {
-          notes = parsed;
-        } else {
-          notes = [];
-        }
+      if (data) {
+        const parsed = JSON.parse(data);
+        notes = Array.isArray(parsed) ? parsed : [];
       } else {
-        // First Telegram launch:
-        // migrate any notes that were previously stored in localStorage.
-        const localNotes = loadLocalNotes();
+        notes = loadLocalNotes();
 
-        if (localNotes.length > 0) {
-          notes = localNotes;
+        if (notes.length > 0) {
           await saveNotes();
-        } else {
-          notes = [];
         }
       }
 
@@ -119,9 +96,8 @@ async function loadNotes() {
       renderNotes();
       return;
     } catch (error) {
-      console.error("CloudStorage load failed:", error);
+      console.error("CloudStorage load error:", error);
 
-      // Keep the app usable if Telegram storage temporarily fails.
       notes = loadLocalNotes();
       setSavedStatus("Offline");
       renderNotes();
@@ -129,7 +105,6 @@ async function loadNotes() {
     }
   }
 
-  // Browser/GitHub Pages fallback.
   notes = loadLocalNotes();
   setSavedStatus("Local");
   renderNotes();
@@ -138,32 +113,34 @@ async function loadNotes() {
 async function saveNotes() {
   saveLocalNotes();
 
-  if (hasCloudStorage()) {
-    try {
-      const serialized = JSON.stringify(notes);
-
-      // Telegram CloudStorage values have a 4096-character limit.
-      if (serialized.length > 4096) {
-        setSavedStatus("Too large");
-        alert(
-          "This note collection is too large for Telegram CloudStorage. " +
-          "Please keep individual notes or the total collection smaller."
-        );
-        return false;
-      }
-
-      await cloudSet(CLOUD_KEY, serialized);
-      setSavedStatus("Saved");
-      return true;
-    } catch (error) {
-      console.error("CloudStorage save failed:", error);
-      setSavedStatus("Offline");
-      return false;
-    }
+  if (!hasCloudStorage()) {
+    setSavedStatus("Local");
+    return true;
   }
 
-  setSavedStatus("Local");
-  return true;
+  try {
+    const serialized = JSON.stringify(notes);
+
+    if (serialized.length > 4096) {
+      setSavedStatus("Too large");
+
+      alert(
+        "The notes are too large for Telegram CloudStorage."
+      );
+
+      return false;
+    }
+
+    await cloudSet(CLOUD_KEY, serialized);
+
+    setSavedStatus("Saved");
+    return true;
+  } catch (error) {
+    console.error("CloudStorage save error:", error);
+
+    setSavedStatus("Offline");
+    return false;
+  }
 }
 
 function setSavedStatus(text) {
@@ -175,7 +152,7 @@ function setSavedStatus(text) {
 function generateId() {
   return (
     Date.now().toString(36) +
-    Math.random().toString(36).slice(2, 8)
+    Math.random().toString(36).substring(2, 8)
   );
 }
 
@@ -183,7 +160,7 @@ function getFilteredNotes() {
   const query = searchQuery.trim().toLowerCase();
 
   if (!query) {
-    return notes;
+    return [...notes];
   }
 
   return notes.filter((note) => {
@@ -195,80 +172,80 @@ function getFilteredNotes() {
 }
 
 function getPreview(note) {
-  const body = String(note.body || "")
+  const text = String(note.body || "")
     .replace(/\s+/g, " ")
     .trim();
 
-  if (body) {
-    return body.slice(0, 120);
-  }
-
-  return "No additional text";
+  return text ? text.substring(0, 120) : "No additional text";
 }
 
 function formatDate(timestamp) {
-  const date = new Date(timestamp);
+  if (!timestamp) return "";
 
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
+  const date = new Date(timestamp);
 
   return date.toLocaleDateString(undefined, {
     month: "short",
-    day: "numeric",
-    year: "numeric"
+    day: "numeric"
   });
 }
 
 function renderNotes() {
-  if (!notesList) return;
-
-  const filtered = getFilteredNotes();
-
   notesList.innerHTML = "";
 
-  if (countLabel) {
-    countLabel.textContent =
-      notes.length === 1 ? "1 Note" : `${notes.length} Notes`;
+  const filtered = getFilteredNotes().sort(
+    (a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)
+  );
+
+  countLabel.textContent =
+    notes.length === 1
+      ? "1 Note"
+      : `${notes.length} Notes`;
+
+  if (filtered.length === 0) {
+    emptyState.classList.remove("hidden");
+  } else {
+    emptyState.classList.add("hidden");
   }
 
-  if (emptyState) {
-    emptyState.style.display = filtered.length === 0 ? "block" : "none";
-  }
+  filtered.forEach((note) => {
+    const card = document.createElement("button");
 
-  filtered
-    .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
-    .forEach((note) => {
-      const card = document.createElement("button");
-      card.type = "button";
-      card.className = "note-card";
+    card.type = "button";
+    card.className = "note-card";
 
-      const title = document.createElement("div");
-      title.className = "note-title";
-      title.textContent = note.title || "Untitled Note";
+    const title = document.createElement("div");
+    title.className = "note-title";
+    title.textContent = note.title || "Untitled Note";
 
-      const preview = document.createElement("div");
-      preview.className = "note-preview";
-      preview.textContent = getPreview(note);
+    const preview = document.createElement("div");
+    preview.className = "note-preview";
+    preview.textContent = getPreview(note);
 
-      const date = document.createElement("div");
-      date.className = "note-date";
-      date.textContent = formatDate(note.updatedAt || note.createdAt);
+    const date = document.createElement("div");
+    date.className = "note-date";
+    date.textContent = formatDate(
+      note.updatedAt || note.createdAt
+    );
 
-      card.appendChild(title);
-      card.appendChild(preview);
-      card.appendChild(date);
+    card.appendChild(title);
+    card.appendChild(preview);
+    card.appendChild(date);
 
-      card.addEventListener("click", () => openEditor(note.id));
-
-      notesList.appendChild(card);
+    card.addEventListener("click", () => {
+      openEditor(note.id);
     });
+
+    notesList.appendChild(card);
+  });
 }
 
 function openEditor(noteId = null) {
   currentNoteId = noteId;
 
-  const note = notes.find((item) => item.id === noteId);
+  const note = notes.find(
+    (item) => item.id === noteId
+  );
 
   if (note) {
     titleInput.value = note.title || "";
@@ -282,27 +259,25 @@ function openEditor(noteId = null) {
 
   updateDirection();
 
-  notesView.style.display = "none";
-  editorView.style.display = "flex";
+  document.querySelector(".app").style.display = "none";
+  editor.classList.remove("hidden");
 
   if (tg?.BackButton) {
     tg.BackButton.show();
   }
 
-  setTimeout(() => {
-    if (note) {
-      bodyInput.focus();
-    } else {
-      titleInput.focus();
-    }
-  }, 100);
+  if (note) {
+    bodyInput.focus();
+  } else {
+    titleInput.focus();
+  }
 }
 
 function closeEditor() {
   currentNoteId = null;
 
-  notesView.style.display = "";
-  editorView.style.display = "none";
+  editor.classList.add("hidden");
+  document.querySelector(".app").style.display = "";
 
   if (tg?.BackButton) {
     tg.BackButton.hide();
@@ -315,7 +290,6 @@ async function saveCurrentNote() {
   const title = titleInput.value.trim();
   const body = bodyInput.value;
 
-  // Don't create completely empty notes.
   if (!title && !body.trim()) {
     closeEditor();
     return;
@@ -358,9 +332,7 @@ async function deleteCurrentNote() {
     return;
   }
 
-  const confirmed = confirm("Delete this note?");
-
-  if (!confirmed) {
+  if (!confirm("Delete this note?")) {
     return;
   }
 
@@ -373,24 +345,15 @@ async function deleteCurrentNote() {
 }
 
 function updateDirection() {
-  if (!bodyInput) return;
-
-  bodyInput.dir =
-    currentDirection === "rtl"
-      ? "rtl"
-      : currentDirection === "ltr"
-      ? "ltr"
-      : "auto";
-
-  if (directionButton) {
-    const labels = {
-      auto: "Auto",
-      rtl: "RTL",
-      ltr: "LTR"
-    };
-
-    directionButton.textContent =
-      labels[currentDirection] || "Auto";
+  if (currentDirection === "rtl") {
+    bodyInput.dir = "rtl";
+    dirBtn.textContent = "RTL";
+  } else if (currentDirection === "ltr") {
+    bodyInput.dir = "ltr";
+    dirBtn.textContent = "LTR";
+  } else {
+    bodyInput.dir = "auto";
+    dirBtn.textContent = "Auto";
   }
 }
 
@@ -406,62 +369,42 @@ function cycleDirection() {
   updateDirection();
 }
 
-function setupEvents() {
-  const newButton =
-    $("newNoteButton") ||
-    $("newNoteBtn") ||
-    $("newNote");
+newBtn.addEventListener("click", () => {
+  openEditor();
+});
 
-  const doneButton =
-    $("doneButton") ||
-    $("doneBtn");
+emptyNewBtn.addEventListener("click", () => {
+  openEditor();
+});
 
-  const backButton =
-    $("backButton") ||
-    $("backBtn");
+backBtn.addEventListener("click", () => {
+  closeEditor();
+});
 
-  const deleteButton =
-    $("deleteButton") ||
-    $("deleteBtn") ||
-    $("deleteNoteButton");
+doneBtn.addEventListener("click", () => {
+  saveCurrentNote();
+});
 
-  if (newButton) {
-    newButton.addEventListener("click", () => {
-      openEditor();
-    });
-  }
+dirBtn.addEventListener("click", () => {
+  cycleDirection();
+});
 
-  if (doneButton) {
-    doneButton.addEventListener("click", saveCurrentNote);
-  }
+deleteBtn.addEventListener("click", () => {
+  deleteCurrentNote();
+});
 
-  if (backButton) {
-    backButton.addEventListener("click", closeEditor);
-  }
+searchInput.addEventListener("input", () => {
+  searchQuery = searchInput.value;
+  renderNotes();
+});
 
-  if (deleteButton) {
-    deleteButton.addEventListener("click", deleteCurrentNote);
-  }
-
-  if (directionButton) {
-    directionButton.addEventListener("click", cycleDirection);
-  }
-
-  if (searchInput) {
-    searchInput.addEventListener("input", () => {
-      searchQuery = searchInput.value;
-      renderNotes();
-    });
-  }
-
-  if (tg?.BackButton) {
-    tg.BackButton.onClick(closeEditor);
-  }
+if (tg?.BackButton) {
+  tg.BackButton.onClick(() => {
+    closeEditor();
+  });
 }
 
-function applyTelegramTheme() {
-  if (!tg) return;
-
+if (tg) {
   if (typeof tg.setHeaderColor === "function") {
     tg.setHeaderColor("bg_color");
   }
@@ -471,15 +414,5 @@ function applyTelegramTheme() {
   }
 }
 
-async function initialize() {
-  applyTelegramTheme();
-  setupEvents();
-
-  if (editorView) {
-    editorView.style.display = "none";
-  }
-
-  await loadNotes();
-}
-
-initialize();
+loadNotes();
+```
