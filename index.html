@@ -1,1 +1,136 @@
-<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Notes</title><link rel="stylesheet" href="style.css"><script src="https://telegram.org/js/telegram-web-app.js"></script></head><body><main class="app"><header class="topbar"><div><h1>Notes</h1><p id="countLabel">0 Notes</p></div><button id="newBtn" class="icon-btn">＋</button></header><div class="search-wrap"><input id="searchInput" type="search" placeholder="Search" autocomplete="off"></div><section id="notesList" class="notes-list"></section><section id="emptyState" class="empty hidden"><div class="empty-icon">✎</div><h2>No Notes</h2><p>Create your first note.</p><button id="emptyNewBtn" class="primary">New Note</button></section></main><section id="editor" class="editor hidden"><header class="editor-bar"><button id="backBtn" class="text-btn">‹ Back</button><div class="editor-actions"><button id="dirBtn" class="small-btn">Auto</button><button id="doneBtn" class="text-btn strong">Done</button></div></header><input id="titleInput" class="title-input" placeholder="Title"><textarea id="bodyInput" class="body-input" placeholder="Start writing..."></textarea><footer class="editor-footer"><button id="deleteBtn" class="danger-btn">Delete Note</button><span id="savedLabel">Saved</span></footer></section><script src="app.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+  <title>Notes</title>
+
+  <link rel="stylesheet" href="style.css?v=2">
+
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+
+<body>
+
+  <main class="app">
+
+    <header class="topbar">
+      <div>
+        <h1>Notes</h1>
+        <p id="countLabel">0 Notes</p>
+      </div>
+
+      <button id="newBtn" class="icon-btn" type="button">＋</button>
+    </header>
+
+
+    <div class="search-wrap">
+      <input
+        id="searchInput"
+        type="search"
+        placeholder="Search"
+        autocomplete="off"
+      >
+    </div>
+
+
+    <section id="notesList" class="notes-list"></section>
+
+
+    <section id="emptyState" class="empty hidden">
+
+      <div class="empty-icon">✎</div>
+
+      <h2>No Notes</h2>
+
+      <p>Create your first note.</p>
+
+      <button
+        id="emptyNewBtn"
+        class="primary"
+        type="button"
+      >
+        New Note
+      </button>
+
+    </section>
+
+  </main>
+
+
+  <section id="editor" class="editor hidden">
+
+    <header class="editor-bar">
+
+      <button
+        id="backBtn"
+        class="text-btn"
+        type="button"
+      >
+        ‹ Back
+      </button>
+
+
+      <div class="editor-actions">
+
+        <button
+          id="dirBtn"
+          class="small-btn"
+          type="button"
+        >
+          Auto
+        </button>
+
+        <button
+          id="doneBtn"
+          class="text-btn strong"
+          type="button"
+        >
+          Done
+        </button>
+
+      </div>
+
+    </header>
+
+
+    <input
+      id="titleInput"
+      class="title-input"
+      type="text"
+      placeholder="Title"
+      autocomplete="off"
+    >
+
+
+    <textarea
+      id="bodyInput"
+      class="body-input"
+      placeholder="Start writing..."
+      spellcheck="true"
+    ></textarea>
+
+
+    <footer class="editor-footer">
+
+      <button
+        id="deleteBtn"
+        class="danger-btn"
+        type="button"
+      >
+        Delete Note
+      </button>
+
+      <span id="savedLabel">Saved</span>
+
+    </footer>
+
+  </section>
+
+
+  <!-- Cache-busting: forces Telegram to load the latest JavaScript -->
+  <script src="app.js?v=2"></script>
+
+</body>
+</html>
