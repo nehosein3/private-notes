@@ -54,6 +54,19 @@ let direction = "auto";
 
 
 // ==================================================
+// Autosave State
+// ==================================================
+
+let saveTimer = null;
+
+let saveGeneration = 0;
+
+let isSaving = false;
+
+let pendingSave = false;
+
+
+// ==================================================
 // CloudStorage Helpers
 // ==================================================
 
@@ -62,20 +75,28 @@ function storageGet(key) {
   return new Promise(function (resolve, reject) {
 
     if (!cloudStorage) {
-      reject(new Error("Telegram CloudStorage is unavailable."));
+      reject(
+        new Error(
+          "Telegram CloudStorage is unavailable."
+        )
+      );
+
       return;
     }
 
-    cloudStorage.getItem(key, function (error, value) {
+    cloudStorage.getItem(
+      key,
+      function (error, value) {
 
-      if (error) {
-        reject(error);
-        return;
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        resolve(value || "");
+
       }
-
-      resolve(value || "");
-
-    });
+    );
 
   });
 
@@ -87,20 +108,29 @@ function storageSet(key, value) {
   return new Promise(function (resolve, reject) {
 
     if (!cloudStorage) {
-      reject(new Error("Telegram CloudStorage is unavailable."));
+      reject(
+        new Error(
+          "Telegram CloudStorage is unavailable."
+        )
+      );
+
       return;
     }
 
-    cloudStorage.setItem(key, value, function (error, success) {
+    cloudStorage.setItem(
+      key,
+      value,
+      function (error, success) {
 
-      if (error) {
-        reject(error);
-        return;
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        resolve(success);
+
       }
-
-      resolve(success);
-
-    });
+    );
 
   });
 
@@ -112,20 +142,28 @@ function storageRemove(key) {
   return new Promise(function (resolve, reject) {
 
     if (!cloudStorage) {
-      reject(new Error("Telegram CloudStorage is unavailable."));
+      reject(
+        new Error(
+          "Telegram CloudStorage is unavailable."
+        )
+      );
+
       return;
     }
 
-    cloudStorage.removeItem(key, function (error, success) {
+    cloudStorage.removeItem(
+      key,
+      function (error, success) {
 
-      if (error) {
-        reject(error);
-        return;
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        resolve(success);
+
       }
-
-      resolve(success);
-
-    });
+    );
 
   });
 
@@ -147,11 +185,14 @@ async function loadNotes() {
       renderNotes();
 
       return;
+
     }
 
 
     const indexValue =
-      await storageGet(NOTES_INDEX_KEY);
+      await storageGet(
+        NOTES_INDEX_KEY
+      );
 
 
     if (!indexValue) {
@@ -161,6 +202,7 @@ async function loadNotes() {
       renderNotes();
 
       return;
+
     }
 
 
@@ -168,7 +210,9 @@ async function loadNotes() {
 
     try {
 
-      ids = JSON.parse(indexValue);
+      ids = JSON.parse(
+        indexValue
+      );
 
     } catch (error) {
 
@@ -191,6 +235,7 @@ async function loadNotes() {
       renderNotes();
 
       return;
+
     }
 
 
@@ -202,7 +247,9 @@ async function loadNotes() {
       try {
 
         const value =
-          await storageGet(NOTE_KEY_PREFIX + id);
+          await storageGet(
+            NOTE_KEY_PREFIX + id
+          );
 
 
         if (!value) {
@@ -210,10 +257,14 @@ async function loadNotes() {
         }
 
 
-        const note = JSON.parse(value);
+        const note =
+          JSON.parse(value);
 
 
-        if (note && note.id) {
+        if (
+          note &&
+          note.id
+        ) {
 
           loadedNotes.push(note);
 
@@ -232,14 +283,16 @@ async function loadNotes() {
     }
 
 
-    loadedNotes.sort(function (a, b) {
+    loadedNotes.sort(
+      function (a, b) {
 
-      return (
-        (b.updatedAt || 0) -
-        (a.updatedAt || 0)
-      );
+        return (
+          (b.updatedAt || 0) -
+          (a.updatedAt || 0)
+        );
 
-    });
+      }
+    );
 
 
     notes = loadedNotes;
@@ -268,9 +321,12 @@ async function loadNotes() {
 
 async function saveIndex() {
 
-  const ids = notes.map(function (note) {
-    return note.id;
-  });
+  const ids =
+    notes.map(
+      function (note) {
+        return note.id;
+      }
+    );
 
 
   await storageSet(
@@ -299,7 +355,7 @@ async function saveNoteToCloud(note) {
 
 
 // ==================================================
-// Delete One Note From Cloud
+// Delete One Note
 // ==================================================
 
 async function deleteNoteFromCloud(id) {
@@ -315,10 +371,301 @@ async function deleteNoteFromCloud(id) {
 
 
 // ==================================================
+// Create New Note Object
+// ==================================================
+
+function createNewNote() {
+
+  const now =
+    Date.now();
+
+
+  return {
+
+    id:
+      now.toString() +
+      "_" +
+      Math.random()
+        .toString(36)
+        .slice(2, 8),
+
+    title:
+      titleInput.value.trim() ||
+      "Untitled",
+
+    body:
+      bodyInput.value.trim(),
+
+    direction:
+      direction,
+
+    createdAt:
+      now,
+
+    updatedAt:
+      now
+
+  };
+
+}
+
+
+// ==================================================
+// Get Current Editor Data
+// ==================================================
+
+function getEditorData() {
+
+  return {
+
+    title:
+      titleInput.value.trim(),
+
+    body:
+      bodyInput.value.trim(),
+
+    direction:
+      direction
+
+  };
+
+}
+
+
+// ==================================================
+// Autosave Scheduling
+// ==================================================
+
+function scheduleAutosave() {
+
+  clearTimeout(
+    saveTimer
+  );
+
+
+  saveTimer =
+    setTimeout(
+      function () {
+
+        autosaveCurrentNote();
+
+      },
+      1000
+    );
+
+}
+
+
+// ==================================================
+// Autosave Current Note
+// ==================================================
+
+async function autosaveCurrentNote() {
+
+  clearTimeout(
+    saveTimer
+  );
+
+
+  const data =
+    getEditorData();
+
+
+  // Do not create an empty note.
+  if (
+    currentNoteId === null &&
+    !data.title &&
+    !data.body
+  ) {
+
+    savedLabel.textContent =
+      "New Note";
+
+    return;
+
+  }
+
+
+  const myGeneration =
+    ++saveGeneration;
+
+
+  pendingSave = true;
+
+
+  if (isSaving) {
+    return;
+  }
+
+
+  isSaving = true;
+
+
+  try {
+
+    while (pendingSave) {
+
+      pendingSave = false;
+
+
+      const currentGeneration =
+        saveGeneration;
+
+
+      const latestData =
+        getEditorData();
+
+
+      if (
+        currentNoteId === null &&
+        !latestData.title &&
+        !latestData.body
+      ) {
+
+        savedLabel.textContent =
+          "New Note";
+
+        continue;
+
+      }
+
+
+      savedLabel.textContent =
+        "Saving...";
+
+
+      // ----------------------------------------------
+      // New Note
+      // ----------------------------------------------
+
+      if (
+        currentNoteId === null
+      ) {
+
+        const newNote =
+          createNewNote();
+
+
+        notes.unshift(
+          newNote
+        );
+
+
+        currentNoteId =
+          newNote.id;
+
+
+        await saveNoteToCloud(
+          newNote
+        );
+
+      }
+
+
+      // ----------------------------------------------
+      // Existing Note
+      // ----------------------------------------------
+
+      else {
+
+        const note =
+          notes.find(
+            function (item) {
+
+              return (
+                item.id ===
+                currentNoteId
+              );
+
+            }
+          );
+
+
+        if (!note) {
+          continue;
+        }
+
+
+        const latest =
+          getEditorData();
+
+
+        note.title =
+          latest.title ||
+          "Untitled";
+
+
+        note.body =
+          latest.body;
+
+
+        note.direction =
+          latest.direction;
+
+
+        note.updatedAt =
+          Date.now();
+
+
+        await saveNoteToCloud(
+          note
+        );
+
+      }
+
+
+      // If the user typed again while saving,
+      // another save will run with the newest data.
+      if (
+        currentGeneration !==
+        saveGeneration
+      ) {
+
+        pendingSave = true;
+
+        continue;
+
+      }
+
+
+      savedLabel.textContent =
+        "Saved";
+
+
+      renderNotes();
+
+    }
+
+  } catch (error) {
+
+    console.error(
+      "Autosave error:",
+      error
+    );
+
+
+    savedLabel.textContent =
+      "Save failed";
+
+  } finally {
+
+    isSaving = false;
+
+  }
+
+}
+
+
+// ==================================================
 // Open New Note
 // ==================================================
 
 function openNewNote() {
+
+  clearTimeout(
+    saveTimer
+  );
+
 
   currentNoteId = null;
 
@@ -328,25 +675,43 @@ function openNewNote() {
 
   direction = "auto";
 
-  dirBtn.textContent = "Auto";
+  dirBtn.textContent =
+    "Auto";
 
-  bodyInput.dir = "auto";
+  bodyInput.dir =
+    "auto";
 
-  deleteBtn.style.display = "none";
+  deleteBtn.style.display =
+    "none";
 
-  savedLabel.textContent = "New Note";
+  savedLabel.textContent =
+    "New Note";
 
 
-  app.style.display = "none";
+  app.style.display =
+    "none";
 
-  editor.classList.remove("hidden");
 
-  editor.style.display = "flex";
+  editor.classList.remove(
+    "hidden"
+  );
 
-  editor.style.position = "fixed";
-  editor.style.inset = "0";
-  editor.style.zIndex = "99999";
-  editor.style.background = "var(--tg-theme-bg-color, #ffffff)";
+
+  editor.style.display =
+    "flex";
+
+
+  editor.style.position =
+    "fixed";
+
+  editor.style.inset =
+    "0";
+
+  editor.style.zIndex =
+    "99999";
+
+  editor.style.background =
+    "var(--tg-theme-bg-color, #ffffff)";
 
 
   titleInput.focus();
@@ -360,11 +725,19 @@ function openNewNote() {
 
 function openNote(id) {
 
-  const note = notes.find(function (item) {
+  clearTimeout(
+    saveTimer
+  );
 
-    return item.id === id;
 
-  });
+  const note =
+    notes.find(
+      function (item) {
+
+        return item.id === id;
+
+      }
+    );
 
 
   if (!note) {
@@ -372,7 +745,8 @@ function openNote(id) {
   }
 
 
-  currentNoteId = id;
+  currentNoteId =
+    id;
 
 
   titleInput.value =
@@ -384,42 +758,72 @@ function openNote(id) {
 
 
   direction =
-    note.direction || "auto";
+    note.direction ||
+    "auto";
 
 
-  if (direction === "rtl") {
+  if (
+    direction === "rtl"
+  ) {
 
-    dirBtn.textContent = "RTL";
+    dirBtn.textContent =
+      "RTL";
 
-  } else if (direction === "ltr") {
+  }
 
-    dirBtn.textContent = "LTR";
+  else if (
+    direction === "ltr"
+  ) {
 
-  } else {
+    dirBtn.textContent =
+      "LTR";
 
-    dirBtn.textContent = "Auto";
+  }
+
+  else {
+
+    dirBtn.textContent =
+      "Auto";
 
   }
 
 
-  bodyInput.dir = direction;
+  bodyInput.dir =
+    direction;
 
 
-  deleteBtn.style.display = "block";
+  deleteBtn.style.display =
+    "block";
 
-  savedLabel.textContent = "Saved";
+
+  savedLabel.textContent =
+    "Saved";
 
 
-  app.style.display = "none";
+  app.style.display =
+    "none";
 
-  editor.classList.remove("hidden");
 
-  editor.style.display = "flex";
+  editor.classList.remove(
+    "hidden"
+  );
 
-  editor.style.position = "fixed";
-  editor.style.inset = "0";
-  editor.style.zIndex = "99999";
-  editor.style.background = "var(--tg-theme-bg-color, #ffffff)";
+
+  editor.style.display =
+    "flex";
+
+
+  editor.style.position =
+    "fixed";
+
+  editor.style.inset =
+    "0";
+
+  editor.style.zIndex =
+    "99999";
+
+  editor.style.background =
+    "var(--tg-theme-bg-color, #ffffff)";
 
 
   titleInput.focus();
@@ -431,22 +835,51 @@ function openNote(id) {
 // Close Editor
 // ==================================================
 
-function closeEditor() {
+async function closeEditor() {
 
-  editor.style.display = "none";
+  clearTimeout(
+    saveTimer
+  );
 
-  editor.classList.add("hidden");
 
-  app.style.display = "";
+  // Save any unsaved changes before leaving.
+  if (
+    currentNoteId !== null ||
+    titleInput.value.trim() ||
+    bodyInput.value.trim()
+  ) {
+
+    await autosaveCurrentNote();
+
+  }
+
+
+  editor.style.display =
+    "none";
+
+  editor.classList.add(
+    "hidden"
+  );
+
+  app.style.display =
+    "";
 
 }
 
 
 // ==================================================
-// Save Current Note
+// Save Current Note Immediately
 // ==================================================
 
 async function saveCurrentNote() {
+
+  clearTimeout(
+    saveTimer
+  );
+
+
+  saveGeneration++;
+
 
   const title =
     titleInput.value.trim();
@@ -457,9 +890,12 @@ async function saveCurrentNote() {
 
 
   // Empty note
-  if (!title && !body) {
+  if (
+    !title &&
+    !body
+  ) {
 
-    closeEditor();
+    closeEditorWithoutSave();
 
     return;
 
@@ -468,45 +904,30 @@ async function saveCurrentNote() {
 
   try {
 
-    doneBtn.disabled = true;
+    doneBtn.disabled =
+      true;
 
-    savedLabel.textContent = "Saving...";
+
+    savedLabel.textContent =
+      "Saving...";
 
 
     // ----------------------------------------------
     // New Note
     // ----------------------------------------------
 
-    if (currentNoteId === null) {
+    if (
+      currentNoteId === null
+    ) {
 
-      const newNote = {
-
-        id:
-          Date.now().toString() +
-          "_" +
-          Math.random()
-            .toString(36)
-            .slice(2, 8),
-
-        title:
-          title || "Untitled",
-
-        body:
-          body,
-
-        direction:
-          direction,
-
-        createdAt:
-          Date.now(),
-
-        updatedAt:
-          Date.now()
-
-      };
+      const newNote =
+        createNewNote();
 
 
-      notes.unshift(newNote);
+      notes.unshift(
+        newNote
+      );
+
 
       currentNoteId =
         newNote.id;
@@ -526,26 +947,32 @@ async function saveCurrentNote() {
     else {
 
       const note =
-        notes.find(function (item) {
+        notes.find(
+          function (item) {
 
-          return (
-            item.id ===
-            currentNoteId
-          );
+            return (
+              item.id ===
+              currentNoteId
+            );
 
-        });
+          }
+        );
 
 
       if (note) {
 
         note.title =
-          title || "Untitled";
+          title ||
+          "Untitled";
+
 
         note.body =
           body;
 
+
         note.direction =
           direction;
+
 
         note.updatedAt =
           Date.now();
@@ -567,7 +994,9 @@ async function saveCurrentNote() {
     renderNotes();
 
 
-    if (tg?.HapticFeedback) {
+    if (
+      tg?.HapticFeedback
+    ) {
 
       tg.HapticFeedback
         .notificationOccurred(
@@ -577,7 +1006,7 @@ async function saveCurrentNote() {
     }
 
 
-    closeEditor();
+    closeEditorWithoutSave();
 
   } catch (error) {
 
@@ -591,7 +1020,9 @@ async function saveCurrentNote() {
       "Save failed";
 
 
-    if (tg?.HapticFeedback) {
+    if (
+      tg?.HapticFeedback
+    ) {
 
       tg.HapticFeedback
         .notificationOccurred(
@@ -607,9 +1038,36 @@ async function saveCurrentNote() {
 
   } finally {
 
-    doneBtn.disabled = false;
+    doneBtn.disabled =
+      false;
 
   }
+
+}
+
+
+// ==================================================
+// Close Without Additional Save
+// ==================================================
+
+function closeEditorWithoutSave() {
+
+  clearTimeout(
+    saveTimer
+  );
+
+
+  editor.style.display =
+    "none";
+
+
+  editor.classList.add(
+    "hidden"
+  );
+
+
+  app.style.display =
+    "";
 
 }
 
@@ -620,9 +1078,23 @@ async function saveCurrentNote() {
 
 async function deleteCurrentNote() {
 
-  if (currentNoteId === null) {
+  if (
+    currentNoteId === null
+  ) {
+
     return;
+
   }
+
+
+  clearTimeout(
+    saveTimer
+  );
+
+
+  saveGeneration++;
+
+  pendingSave = false;
 
 
   const confirmed =
@@ -638,7 +1110,9 @@ async function deleteCurrentNote() {
 
   try {
 
-    deleteBtn.disabled = true;
+    deleteBtn.disabled =
+      true;
+
 
     savedLabel.textContent =
       "Deleting...";
@@ -649,23 +1123,30 @@ async function deleteCurrentNote() {
 
 
     notes =
-      notes.filter(function (note) {
+      notes.filter(
+        function (note) {
 
-        return note.id !== id;
+          return note.id !== id;
 
-      });
-
-
-    await deleteNoteFromCloud(id);
+        }
+      );
 
 
-    currentNoteId = null;
+    await deleteNoteFromCloud(
+      id
+    );
+
+
+    currentNoteId =
+      null;
 
 
     renderNotes();
 
 
-    if (tg?.HapticFeedback) {
+    if (
+      tg?.HapticFeedback
+    ) {
 
       tg.HapticFeedback
         .notificationOccurred(
@@ -675,7 +1156,7 @@ async function deleteCurrentNote() {
     }
 
 
-    closeEditor();
+    closeEditorWithoutSave();
 
   } catch (error) {
 
@@ -691,7 +1172,8 @@ async function deleteCurrentNote() {
 
   } finally {
 
-    deleteBtn.disabled = false;
+    deleteBtn.disabled =
+      false;
 
   }
 
@@ -704,7 +1186,8 @@ async function deleteCurrentNote() {
 
 function renderNotes() {
 
-  notesList.innerHTML = "";
+  notesList.innerHTML =
+    "";
 
 
   countLabel.textContent =
@@ -713,86 +1196,106 @@ function renderNotes() {
       : notes.length + " Notes";
 
 
-  if (notes.length === 0) {
+  if (
+    notes.length === 0
+  ) {
 
     notesList.style.display =
       "none";
 
+
     emptyState.classList.remove(
       "hidden"
     );
+
 
     return;
 
   }
 
 
-  notesList.style.display = "";
+  notesList.style.display =
+    "";
+
 
   emptyState.classList.add(
     "hidden"
   );
 
 
-  notes.forEach(function (note) {
+  notes.forEach(
+    function (note) {
 
-    const item =
-      document.createElement(
-        "button"
+      const item =
+        document.createElement(
+          "button"
+        );
+
+
+      item.type =
+        "button";
+
+
+      item.className =
+        "note-item";
+
+
+      const title =
+        document.createElement(
+          "div"
+        );
+
+
+      title.className =
+        "note-title";
+
+
+      title.textContent =
+        note.title ||
+        "Untitled";
+
+
+      const preview =
+        document.createElement(
+          "div"
+        );
+
+
+      preview.className =
+        "note-preview";
+
+
+      preview.textContent =
+        note.body ||
+        "No additional text";
+
+
+      item.appendChild(
+        title
       );
 
 
-    item.type = "button";
-
-    item.className =
-      "note-item";
-
-
-    const title =
-      document.createElement(
-        "div"
+      item.appendChild(
+        preview
       );
 
 
-    title.className =
-      "note-title";
+      item.onclick =
+        function () {
+
+          openNote(
+            note.id
+          );
+
+        };
 
 
-    title.textContent =
-      note.title || "Untitled";
-
-
-    const preview =
-      document.createElement(
-        "div"
+      notesList.appendChild(
+        item
       );
 
-
-    preview.className =
-      "note-preview";
-
-
-    preview.textContent =
-      note.body ||
-      "No additional text";
-
-
-    item.appendChild(title);
-
-    item.appendChild(preview);
-
-
-    item.onclick =
-      function () {
-
-        openNote(note.id);
-
-      };
-
-
-    notesList.appendChild(item);
-
-  });
+    }
+  );
 
 
   applySearch();
@@ -844,30 +1347,64 @@ searchInput.addEventListener(
 
 
 // ==================================================
+// Autosave Input Events
+// ==================================================
+
+titleInput.addEventListener(
+  "input",
+  function () {
+
+    scheduleAutosave();
+
+  }
+);
+
+
+bodyInput.addEventListener(
+  "input",
+  function () {
+
+    scheduleAutosave();
+
+  }
+);
+
+
+// ==================================================
 // Direction
 // ==================================================
 
 dirBtn.onclick =
   function () {
 
-    if (direction === "auto") {
+    if (
+      direction === "auto"
+    ) {
 
-      direction = "rtl";
+      direction =
+        "rtl";
+
 
       dirBtn.textContent =
         "RTL";
+
 
       bodyInput.dir =
         "rtl";
 
     }
 
-    else if (direction === "rtl") {
+    else if (
+      direction === "rtl"
+    ) {
 
-      direction = "ltr";
+      direction =
+        "ltr";
+
 
       dirBtn.textContent =
         "LTR";
+
 
       bodyInput.dir =
         "ltr";
@@ -876,15 +1413,21 @@ dirBtn.onclick =
 
     else {
 
-      direction = "auto";
+      direction =
+        "auto";
+
 
       dirBtn.textContent =
         "Auto";
+
 
       bodyInput.dir =
         "auto";
 
     }
+
+
+    scheduleAutosave();
 
   };
 
@@ -902,7 +1445,11 @@ emptyNewBtn.onclick =
 
 
 backBtn.onclick =
-  closeEditor;
+  function () {
+
+    closeEditor();
+
+  };
 
 
 doneBtn.onclick =
