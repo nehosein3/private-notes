@@ -588,3 +588,41 @@ button {
   }
 
 }
+
+/* ==================================================
+   Pin Notes
+   ================================================== */
+
+.note-item {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+}
+
+.note-content {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  text-align: start;
+  padding: 14px 0;
+  color: inherit;
+  cursor: pointer;
+}
+
+.pin-button {
+  flex: 0 0 auto;
+  align-self: center;
+  border: 0;
+  background: transparent;
+  color: var(--tg-theme-link-color, #007aff);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 4px 10px 10px;
+  cursor: pointer;
+}
+
+.pin-button:active,
+.note-content:active {
+  opacity: 0.6;
+}
