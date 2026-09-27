@@ -13,10 +13,22 @@ const bodyInput = document.getElementById("bodyInput");
 const dirBtn = document.getElementById("dirBtn");
 
 
-// Open editor
+// =========================
+// Open Editor
+// =========================
+
 function openEditor() {
+
   app.style.display = "none";
+
+  editor.classList.remove("hidden");
+
   editor.style.display = "flex";
+
+  editor.style.position = "fixed";
+  editor.style.inset = "0";
+  editor.style.zIndex = "99999";
+  editor.style.background = "white";
 
   titleInput.value = "";
   bodyInput.value = "";
@@ -25,24 +37,47 @@ function openEditor() {
 }
 
 
-// Close editor
+// =========================
+// Close Editor
+// =========================
+
 function closeEditor() {
+
   editor.style.display = "none";
+
+  editor.classList.add("hidden");
+
   app.style.display = "";
 }
 
 
-// New Note buttons
+// =========================
+// New Note
+// =========================
+
 newBtn.onclick = openEditor;
+
 emptyNewBtn.onclick = openEditor;
 
 
-// Back and Done
+// =========================
+// Back
+// =========================
+
 backBtn.onclick = closeEditor;
+
+
+// =========================
+// Done
+// =========================
+
 doneBtn.onclick = closeEditor;
 
 
-// Direction
+// =========================
+// Text Direction
+// =========================
+
 let direction = "auto";
 
 dirBtn.onclick = function () {
@@ -50,19 +85,29 @@ dirBtn.onclick = function () {
   if (direction === "auto") {
 
     direction = "rtl";
+
     dirBtn.textContent = "RTL";
+
     bodyInput.dir = "rtl";
 
-  } else if (direction === "rtl") {
+  }
+
+  else if (direction === "rtl") {
 
     direction = "ltr";
+
     dirBtn.textContent = "LTR";
+
     bodyInput.dir = "ltr";
 
-  } else {
+  }
+
+  else {
 
     direction = "auto";
+
     dirBtn.textContent = "Auto";
+
     bodyInput.dir = "auto";
 
   }
