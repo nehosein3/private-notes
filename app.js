@@ -5,13 +5,13 @@ const app = document.querySelector(".app");
 const backBtn = document.getElementById("backBtn");
 
 function openEditor() {
-  app.classList.add("hidden");
-  editor.classList.remove("hidden");
+  app.style.display = "none";
+  editor.style.display = "flex";
 }
 
 function closeEditor() {
-  editor.classList.add("hidden");
-  app.classList.remove("hidden");
+  editor.style.display = "none";
+  app.style.display = "block";
 }
 
 newBtn.addEventListener("click", openEditor);
