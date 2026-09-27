@@ -9,6 +9,7 @@ body {
   padding: 0;
   width: 100%;
   min-height: 100%;
+
   font-family:
     -apple-system,
     BlinkMacSystemFont,
@@ -17,6 +18,7 @@ body {
     "Helvetica Neue",
     Arial,
     sans-serif;
+
   background: #f2f2f7;
   color: #1c1c1e;
 }
@@ -49,6 +51,7 @@ button {
 .app {
   min-height: 100vh;
   background: #f2f2f7;
+  color: #1c1c1e;
   padding-bottom: 24px;
 }
 
@@ -175,9 +178,6 @@ button {
   color: #1c1c1e;
 }
 
-
-/* Note title */
-
 .note-title {
   width: 100%;
 
@@ -198,9 +198,6 @@ button {
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-
-
-/* Note preview */
 
 .note-preview {
   width: 100%;
@@ -240,9 +237,7 @@ button {
 
 .empty-icon {
   font-size: 48px;
-
   color: #8e8e93;
-
   margin-bottom: 8px;
 }
 
@@ -261,11 +256,6 @@ button {
 
   color: #8e8e93;
 }
-
-
-/* =========================
-   New Note Button
-   ========================= */
 
 .primary {
   padding: 11px 20px;
@@ -335,7 +325,7 @@ button {
 
 
 /* =========================
-   Back / Done
+   Buttons
    ========================= */
 
 .text-btn {
@@ -463,4 +453,138 @@ button {
   color: #8e8e93;
 
   font-size: 13px;
+}
+
+
+/* =========================================================
+   DARK MODE
+   ========================================================= */
+
+@media (prefers-color-scheme: dark) {
+
+  html,
+  body {
+    background: #000000;
+    color: #f5f5f7;
+  }
+
+
+  /* Main */
+
+  .app {
+    background: #000000;
+    color: #f5f5f7;
+  }
+
+
+  /* Header */
+
+  .topbar h1 {
+    color: #f5f5f7;
+  }
+
+  .topbar p {
+    color: #98989d;
+  }
+
+
+  /* Search */
+
+  .search-wrap input {
+    background: #1c1c1e;
+    color: #f5f5f7;
+  }
+
+  .search-wrap input::placeholder {
+    color: #98989d;
+  }
+
+
+  /* Notes */
+
+  .note-item {
+    border-bottom-color: #38383a;
+    color: #f5f5f7;
+  }
+
+  .note-title {
+    color: #f5f5f7;
+  }
+
+  .note-preview {
+    color: #98989d;
+  }
+
+
+  /* Empty */
+
+  .empty-icon {
+    color: #98989d;
+  }
+
+  .empty h2 {
+    color: #f5f5f7;
+  }
+
+  .empty p {
+    color: #98989d;
+  }
+
+
+  /* Editor */
+
+  .editor {
+    background: #000000;
+    color: #f5f5f7;
+  }
+
+  .editor-bar {
+    background: #000000;
+    border-bottom-color: #38383a;
+  }
+
+
+  /* Direction button */
+
+  .small-btn {
+    background: #1c1c1e;
+    color: #0a84ff;
+  }
+
+
+  /* Title */
+
+  .title-input {
+    background: #000000;
+    color: #f5f5f7;
+  }
+
+  .title-input::placeholder {
+    color: #636366;
+  }
+
+
+  /* Body */
+
+  .body-input {
+    background: #000000;
+    color: #f5f5f7;
+  }
+
+  .body-input::placeholder {
+    color: #636366;
+  }
+
+
+  /* Footer */
+
+  .editor-footer {
+    background: #000000;
+    border-top-color: #38383a;
+  }
+
+  #savedLabel {
+    color: #98989d;
+  }
+
 }
