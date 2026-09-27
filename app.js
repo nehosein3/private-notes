@@ -283,19 +283,14 @@ async function loadNotes() {
     }
 
 
-    loadedNotes.sort(
-      function (a, b) {
-
-        return (
-          (b.updatedAt || 0) -
-          (a.updatedAt || 0)
-        );
-
-      }
+    sortNotes(
+      loadedNotes
     );
 
 
-    notes = loadedNotes;
+    notes =
+      loadedNotes;
+
 
     renderNotes();
 
@@ -311,6 +306,40 @@ async function loadNotes() {
     renderNotes();
 
   }
+
+}
+
+
+// ==================================================
+// Sort Notes
+// ==================================================
+
+function sortNotes(list) {
+
+  list.sort(
+    function (a, b) {
+
+      // Pinned notes first
+      if (
+        Boolean(a.pinned) !==
+        Boolean(b.pinned)
+      ) {
+
+        return a.pinned
+          ? -1
+          : 1;
+
+      }
+
+
+      // Then newest first
+      return (
+        (b.updatedAt || 0) -
+        (a.updatedAt || 0)
+      );
+
+    }
+  );
 
 }
 
@@ -371,7 +400,7 @@ async function deleteNoteFromCloud(id) {
 
 
 // ==================================================
-// Create New Note Object
+// Create New Note
 // ==================================================
 
 function createNewNote() {
@@ -399,6 +428,9 @@ function createNewNote() {
     direction:
       direction,
 
+    pinned:
+      false,
+
     createdAt:
       now,
 
@@ -411,7 +443,7 @@ function createNewNote() {
 
 
 // ==================================================
-// Get Current Editor Data
+// Get Editor Data
 // ==================================================
 
 function getEditorData() {
@@ -471,7 +503,6 @@ async function autosaveCurrentNote() {
     getEditorData();
 
 
-  // Do not create an empty note.
   if (
     currentNoteId === null &&
     !data.title &&
@@ -486,9 +517,7 @@ async function autosaveCurrentNote() {
   }
 
 
-  const myGeneration =
-    ++saveGeneration;
-
+  saveGeneration++;
 
   pendingSave = true;
 
@@ -506,10 +535,6 @@ async function autosaveCurrentNote() {
     while (pendingSave) {
 
       pendingSave = false;
-
-
-      const currentGeneration =
-        saveGeneration;
 
 
       const latestData =
@@ -534,10 +559,6 @@ async function autosaveCurrentNote() {
         "Saving...";
 
 
-      // ----------------------------------------------
-      // New Note
-      // ----------------------------------------------
-
       if (
         currentNoteId === null
       ) {
@@ -561,10 +582,6 @@ async function autosaveCurrentNote() {
 
       }
 
-
-      // ----------------------------------------------
-      // Existing Note
-      // ----------------------------------------------
 
       else {
 
@@ -614,22 +631,13 @@ async function autosaveCurrentNote() {
       }
 
 
-      // If the user typed again while saving,
-      // another save will run with the newest data.
-      if (
-        currentGeneration !==
-        saveGeneration
-      ) {
-
-        pendingSave = true;
-
-        continue;
-
-      }
-
-
       savedLabel.textContent =
         "Saved";
+
+
+      sortNotes(
+        notes
+      );
 
 
       renderNotes();
@@ -842,7 +850,6 @@ async function closeEditor() {
   );
 
 
-  // Save any unsaved changes before leaving.
   if (
     currentNoteId !== null ||
     titleInput.value.trim() ||
@@ -857,9 +864,37 @@ async function closeEditor() {
   editor.style.display =
     "none";
 
+
   editor.classList.add(
     "hidden"
   );
+
+
+  app.style.display =
+    "";
+
+}
+
+
+// ==================================================
+// Close Without Save
+// ==================================================
+
+function closeEditorWithoutSave() {
+
+  clearTimeout(
+    saveTimer
+  );
+
+
+  editor.style.display =
+    "none";
+
+
+  editor.classList.add(
+    "hidden"
+  );
+
 
   app.style.display =
     "";
@@ -880,6 +915,8 @@ async function saveCurrentNote() {
 
   saveGeneration++;
 
+  pendingSave = false;
+
 
   const title =
     titleInput.value.trim();
@@ -889,7 +926,6 @@ async function saveCurrentNote() {
     bodyInput.value.trim();
 
 
-  // Empty note
   if (
     !title &&
     !body
@@ -911,10 +947,6 @@ async function saveCurrentNote() {
     savedLabel.textContent =
       "Saving...";
 
-
-    // ----------------------------------------------
-    // New Note
-    // ----------------------------------------------
 
     if (
       currentNoteId === null
@@ -939,10 +971,6 @@ async function saveCurrentNote() {
 
     }
 
-
-    // ----------------------------------------------
-    // Existing Note
-    // ----------------------------------------------
 
     else {
 
@@ -985,6 +1013,11 @@ async function saveCurrentNote() {
       }
 
     }
+
+
+    sortNotes(
+      notes
+    );
 
 
     savedLabel.textContent =
@@ -1047,27 +1080,78 @@ async function saveCurrentNote() {
 
 
 // ==================================================
-// Close Without Additional Save
+// Toggle Pin
 // ==================================================
 
-function closeEditorWithoutSave() {
+async function togglePin(id) {
 
-  clearTimeout(
-    saveTimer
-  );
+  const note =
+    notes.find(
+      function (item) {
 
+        return item.id === id;
 
-  editor.style.display =
-    "none";
-
-
-  editor.classList.add(
-    "hidden"
-  );
+      }
+    );
 
 
-  app.style.display =
-    "";
+  if (!note) {
+    return;
+  }
+
+
+  try {
+
+    note.pinned =
+      !Boolean(note.pinned);
+
+
+    note.updatedAt =
+      Date.now();
+
+
+    await saveNoteToCloud(
+      note
+    );
+
+
+    sortNotes(
+      notes
+    );
+
+
+    renderNotes();
+
+
+    if (
+      tg?.HapticFeedback
+    ) {
+
+      tg.HapticFeedback
+        .impactOccurred(
+          "light"
+        );
+
+    }
+
+  } catch (error) {
+
+    console.error(
+      "Pin error:",
+      error
+    );
+
+
+    // Revert if saving failed
+    note.pinned =
+      !Boolean(note.pinned);
+
+
+    alert(
+      "Could not update the note."
+    );
+
+  }
 
 }
 
@@ -1091,8 +1175,6 @@ async function deleteCurrentNote() {
     saveTimer
   );
 
-
-  saveGeneration++;
 
   pendingSave = false;
 
@@ -1228,16 +1310,26 @@ function renderNotes() {
 
       const item =
         document.createElement(
-          "button"
+          "div"
         );
-
-
-      item.type =
-        "button";
 
 
       item.className =
         "note-item";
+
+
+      const content =
+        document.createElement(
+          "button"
+        );
+
+
+      content.type =
+        "button";
+
+
+      content.className =
+        "note-content";
 
 
       const title =
@@ -1270,17 +1362,17 @@ function renderNotes() {
         "No additional text";
 
 
-      item.appendChild(
+      content.appendChild(
         title
       );
 
 
-      item.appendChild(
+      content.appendChild(
         preview
       );
 
 
-      item.onclick =
+      content.onclick =
         function () {
 
           openNote(
@@ -1288,6 +1380,56 @@ function renderNotes() {
           );
 
         };
+
+
+      const pinButton =
+        document.createElement(
+          "button"
+        );
+
+
+      pinButton.type =
+        "button";
+
+
+      pinButton.className =
+        "pin-button";
+
+
+      pinButton.textContent =
+        note.pinned
+          ? "Pinned"
+          : "Pin";
+
+
+      pinButton.setAttribute(
+        "aria-label",
+        note.pinned
+          ? "Unpin note"
+          : "Pin note"
+      );
+
+
+      pinButton.onclick =
+        function (event) {
+
+          event.stopPropagation();
+
+          togglePin(
+            note.id
+          );
+
+        };
+
+
+      item.appendChild(
+        content
+      );
+
+
+      item.appendChild(
+        pinButton
+      );
 
 
       notesList.appendChild(
