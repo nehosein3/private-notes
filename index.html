@@ -1,21 +1,29 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
+
   <meta charset="UTF-8">
 
   <meta
     name="viewport"
-    content="width=device-width, initial-scale=1, viewport-fit=cover"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+  >
+
+  <meta
+    name="theme-color"
+    content="#f2f2f7"
   >
 
   <title>Notes</title>
 
-  <!-- Latest CSS version -->
-  <link rel="stylesheet" href="style.css?v=3">
+  <link
+    rel="stylesheet"
+    href="style.css?v=3"
+  >
 
-  <!-- Telegram Mini App -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
 </head>
 
 
@@ -23,41 +31,49 @@
 
   <main class="app">
 
-    <!-- =========================
-         Main Header
-         ========================= -->
+    <!-- =========================================
+         Header
+         ========================================= -->
 
     <header class="topbar">
 
       <div>
 
-        <h1>Notes</h1>
+        <h1>
+          Notes
+        </h1>
 
-        <p id="countLabel">0 Notes</p>
+        <div
+          id="countLabel"
+          class="count-label"
+        >
+          0 Notes
+        </div>
 
       </div>
 
 
       <button
         id="newBtn"
-        class="icon-btn"
+        class="icon-button"
         type="button"
-        aria-label="New Note"
+        aria-label="New note"
       >
-        ＋
+        +
       </button>
 
     </header>
 
 
-    <!-- =========================
+    <!-- =========================================
          Search
-         ========================= -->
+         ========================================= -->
 
-    <div class="search-wrap">
+    <div class="search-wrapper">
 
       <input
         id="searchInput"
+        class="search-input"
         type="search"
         placeholder="Search"
         autocomplete="off"
@@ -66,43 +82,90 @@
     </div>
 
 
-    <!-- =========================
+    <!-- =========================================
+         Folders
+         ========================================= -->
+
+    <section class="folders-section">
+
+      <div class="section-header">
+
+        <h2>
+          Folders
+        </h2>
+
+        <button
+          id="newFolderBtn"
+          class="small-button"
+          type="button"
+        >
+          New Folder
+        </button>
+
+      </div>
+
+
+      <div
+        id="foldersList"
+        class="folders-list"
+      >
+
+        <button
+          id="allNotesFolder"
+          class="folder-item active"
+          type="button"
+        >
+
+          <span class="folder-icon">
+            📁
+          </span>
+
+          <span>
+            All Notes
+          </span>
+
+        </button>
+
+      </div>
+
+    </section>
+
+
+    <!-- =========================================
          Notes List
-         ========================= -->
+         ========================================= -->
 
     <section
       id="notesList"
       class="notes-list"
-    ></section>
+    >
+    </section>
 
 
-    <!-- =========================
+    <!-- =========================================
          Empty State
-         ========================= -->
+         ========================================= -->
 
     <section
       id="emptyState"
-      class="empty hidden"
+      class="empty-state"
     >
 
       <div class="empty-icon">
-        ✎
+        📝
       </div>
-
 
       <h2>
         No Notes
       </h2>
 
-
       <p>
-        Create your first note.
+        Start writing your first note.
       </p>
-
 
       <button
         id="emptyNewBtn"
-        class="primary"
+        class="primary-button"
         type="button"
       >
         New Note
@@ -113,108 +176,103 @@
   </main>
 
 
-  <!-- ==================================================
+  <!-- =========================================
        Editor
-       ================================================== -->
+       ========================================= -->
 
   <section
     id="editor"
     class="editor hidden"
   >
 
-    <!-- =========================
-         Editor Header
-         ========================= -->
-
-    <header class="editor-bar">
+    <header class="editor-header">
 
       <button
         id="backBtn"
-        class="text-btn"
+        class="text-button"
         type="button"
       >
-        ‹ Back
+        Back
       </button>
 
 
-      <div class="editor-actions">
-
-        <button
-          id="dirBtn"
-          class="small-btn"
-          type="button"
-        >
-          Auto
-        </button>
-
-
-        <button
-          id="doneBtn"
-          class="text-btn strong"
-          type="button"
-        >
-          Done
-        </button>
-
+      <div
+        id="savedLabel"
+        class="saved-label"
+      >
+        New Note
       </div>
+
+
+      <button
+        id="doneBtn"
+        class="text-button strong"
+        type="button"
+      >
+        Done
+      </button>
 
     </header>
 
 
-    <!-- =========================
-         Note Title
-         ========================= -->
-
-    <input
-      id="titleInput"
-      class="title-input"
-      type="text"
-      placeholder="Title"
-      autocomplete="off"
-    >
-
-
-    <!-- =========================
-         Note Body
-         ========================= -->
-
-    <textarea
-      id="bodyInput"
-      class="body-input"
-      placeholder="Start writing..."
-      spellcheck="true"
-    ></textarea>
-
-
-    <!-- =========================
-         Editor Footer
-         ========================= -->
-
-    <footer class="editor-footer">
+    <div class="editor-toolbar">
 
       <button
-        id="deleteBtn"
-        class="danger-btn"
+        id="dirBtn"
+        class="toolbar-button"
         type="button"
       >
-        Delete Note
+        Auto
       </button>
 
 
-      <span id="savedLabel">
-        Saved
-      </span>
+      <select
+        id="folderSelect"
+        class="folder-select"
+      >
 
-    </footer>
+        <option value="">
+          No Folder
+        </option>
+
+      </select>
+
+
+      <button
+        id="deleteBtn"
+        class="toolbar-button delete-button"
+        type="button"
+      >
+        Delete
+      </button>
+
+    </div>
+
+
+    <div class="editor-content">
+
+      <input
+        id="titleInput"
+        class="title-input"
+        type="text"
+        placeholder="Title"
+        autocomplete="off"
+      >
+
+
+      <textarea
+        id="bodyInput"
+        class="body-input"
+        placeholder="Start writing..."
+        spellcheck="true"
+      ></textarea>
+
+    </div>
 
   </section>
 
 
-  <!-- ==================================================
-       JavaScript
-       ================================================== -->
-
-  <script src="app.js?v=8"></script>
+  <script src="app.js?v=9"></script>
 
 </body>
 
