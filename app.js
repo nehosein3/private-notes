@@ -67,6 +67,133 @@ const FOLDERS_KEY =
 
 
 // ==================================================
+// Offline Cache
+// ==================================================
+
+const LOCAL_NOTES_KEY =
+  "private_notes_cache";
+
+const LOCAL_FOLDERS_KEY =
+  "private_folders_cache";
+
+
+function saveNotesToLocal() {
+
+  try {
+
+    localStorage.setItem(
+      LOCAL_NOTES_KEY,
+      JSON.stringify(notes)
+    );
+
+  } catch (error) {
+
+    console.error(
+      "Local notes cache error:",
+      error
+    );
+
+  }
+
+}
+
+
+function loadNotesFromLocal() {
+
+  try {
+
+    const value =
+      localStorage.getItem(
+        LOCAL_NOTES_KEY
+      );
+
+
+    if (!value) {
+      return [];
+    }
+
+
+    const cached =
+      JSON.parse(value);
+
+
+    return Array.isArray(cached)
+      ? cached
+      : [];
+
+  } catch (error) {
+
+    console.error(
+      "Local notes cache read error:",
+      error
+    );
+
+    return [];
+
+  }
+
+}
+
+
+function saveFoldersToLocal() {
+
+  try {
+
+    localStorage.setItem(
+      LOCAL_FOLDERS_KEY,
+      JSON.stringify(folders)
+    );
+
+  } catch (error) {
+
+    console.error(
+      "Local folders cache error:",
+      error
+    );
+
+  }
+
+}
+
+
+function loadFoldersFromLocal() {
+
+  try {
+
+    const value =
+      localStorage.getItem(
+        LOCAL_FOLDERS_KEY
+      );
+
+
+    if (!value) {
+      return [];
+    }
+
+
+    const cached =
+      JSON.parse(value);
+
+
+    return Array.isArray(cached)
+      ? cached
+      : [];
+
+  } catch (error) {
+
+    console.error(
+      "Local folders cache read error:",
+      error
+    );
+
+    return [];
+
+  }
+
+}
+
+
+// ==================================================
 // App State
 // ==================================================
 
@@ -233,18 +360,55 @@ function storageRemove(key) {
 
 async function loadNotes() {
 
+  const localNotes =
+    loadNotesFromLocal();
+
+
+  // ----------------------------------------------
+  // Show local cache immediately if available
+  // ----------------------------------------------
+
+  if (
+    localNotes.length > 0
+  ) {
+
+    sortNotes(
+      localNotes
+    );
+
+    notes =
+      localNotes;
+
+    renderNotes();
+
+  }
+
+
+  // ----------------------------------------------
+  // No Telegram CloudStorage
+  // ----------------------------------------------
+
+  if (!cloudStorage) {
+
+    notes =
+      localNotes;
+
+    sortNotes(
+      notes
+    );
+
+    renderNotes();
+
+    return;
+
+  }
+
+
+  // ----------------------------------------------
+  // Try CloudStorage
+  // ----------------------------------------------
+
   try {
-
-    if (!cloudStorage) {
-
-      notes = [];
-
-      renderNotes();
-
-      return;
-
-    }
-
 
     const indexValue =
       await storageGet(
@@ -252,9 +416,14 @@ async function loadNotes() {
       );
 
 
+    // CloudStorage successfully responded
+    // and says there are no notes.
+
     if (!indexValue) {
 
       notes = [];
+
+      saveNotesToLocal();
 
       renderNotes();
 
@@ -289,7 +458,9 @@ async function loadNotes() {
     const loadedNotes = [];
 
 
-    for (const id of ids) {
+    for (
+      const id of ids
+    ) {
 
       try {
 
@@ -341,16 +512,31 @@ async function loadNotes() {
       loadedNotes;
 
 
+    // Cloud version is now cached locally.
+    saveNotesToLocal();
+
+
     renderNotes();
 
   } catch (error) {
 
-    console.error(
-      "CloudStorage load error:",
+    // CloudStorage failed.
+    // Keep the local cache.
+
+    console.warn(
+      "CloudStorage unavailable. Using local notes cache.",
       error
     );
 
-    notes = [];
+
+    notes =
+      localNotes;
+
+
+    sortNotes(
+      notes
+    );
+
 
     renderNotes();
 
@@ -365,18 +551,51 @@ async function loadNotes() {
 
 async function loadFolders() {
 
+  const localFolders =
+    loadFoldersFromLocal();
+
+
+  // ----------------------------------------------
+  // Show local folders immediately
+  // ----------------------------------------------
+
+  if (
+    localFolders.length > 0
+  ) {
+
+    folders =
+      localFolders;
+
+    renderFolders();
+
+    renderFolderSelect();
+
+  }
+
+
+  // ----------------------------------------------
+  // No Telegram CloudStorage
+  // ----------------------------------------------
+
+  if (!cloudStorage) {
+
+    folders =
+      localFolders;
+
+    renderFolders();
+
+    renderFolderSelect();
+
+    return;
+
+  }
+
+
+  // ----------------------------------------------
+  // Try CloudStorage
+  // ----------------------------------------------
+
   try {
-
-    if (!cloudStorage) {
-
-      folders = [];
-
-      renderFolders();
-
-      return;
-
-    }
-
 
     const value =
       await storageGet(
@@ -384,11 +603,18 @@ async function loadFolders() {
       );
 
 
+    // CloudStorage successfully responded
+    // and says there are no folders.
+
     if (!value) {
 
       folders = [];
 
+      saveFoldersToLocal();
+
       renderFolders();
+
+      renderFolderSelect();
 
       return;
 
@@ -396,6 +622,7 @@ async function loadFolders() {
 
 
     let loadedFolders = [];
+
 
     try {
 
@@ -424,18 +651,32 @@ async function loadFolders() {
       loadedFolders;
 
 
+    // Cloud version is now cached locally.
+    saveFoldersToLocal();
+
+
     renderFolders();
+
+    renderFolderSelect();
 
   } catch (error) {
 
-    console.error(
-      "Folder load error:",
+    // CloudStorage failed.
+    // Keep the local cache.
+
+    console.warn(
+      "CloudStorage unavailable. Using local folders cache.",
       error
     );
 
-    folders = [];
+
+    folders =
+      localFolders;
+
 
     renderFolders();
+
+    renderFolderSelect();
 
   }
 
@@ -448,11 +689,25 @@ async function loadFolders() {
 
 async function saveFolders() {
 
+  // Always save locally first.
+  saveFoldersToLocal();
+
+
+  // If CloudStorage is unavailable,
+  // local copy is still preserved.
+
+  if (!cloudStorage) {
+
+    return;
+
+  }
+
+
+  // Try cloud save.
+
   await storageSet(
     FOLDERS_KEY,
-    JSON.stringify(
-      folders
-    )
+    JSON.stringify(folders)
   );
 
 }
@@ -506,11 +761,16 @@ async function saveIndex() {
     );
 
 
+  if (!cloudStorage) {
+
+    return;
+
+  }
+
+
   await storageSet(
     NOTES_INDEX_KEY,
-    JSON.stringify(
-      ids
-    )
+    JSON.stringify(ids)
   );
 
 }
@@ -521,6 +781,37 @@ async function saveIndex() {
 // ==================================================
 
 async function saveNoteToCloud(note) {
+
+  // Always update local state first.
+
+  notes =
+    notes.map(
+      function (item) {
+
+        return item.id === note.id
+          ? note
+          : item;
+
+      }
+    );
+
+
+  // Always save local cache first.
+
+  saveNotesToLocal();
+
+
+  // If CloudStorage is unavailable,
+  // keep the local copy and stop here.
+
+  if (!cloudStorage) {
+
+    return;
+
+  }
+
+
+  // Save to Telegram CloudStorage.
 
   await storageSet(
     NOTE_KEY_PREFIX + note.id,
@@ -538,6 +829,31 @@ async function saveNoteToCloud(note) {
 // ==================================================
 
 async function deleteNoteFromCloud(id) {
+
+  // Remove locally first.
+
+  notes =
+    notes.filter(
+      function (note) {
+
+        return note.id !== id;
+
+      }
+    );
+
+
+  saveNotesToLocal();
+
+
+  // If offline, local deletion is enough
+  // for the current device.
+
+  if (!cloudStorage) {
+
+    return;
+
+  }
+
 
   await storageRemove(
     NOTE_KEY_PREFIX + id
@@ -653,8 +969,11 @@ async function createFolder() {
       );
 
 
+    saveFoldersToLocal();
+
+
     alert(
-      "Could not create the folder."
+      "Could not save the folder to Telegram CloudStorage. The local copy was kept."
     );
 
   }
@@ -699,6 +1018,7 @@ async function deleteFolder(id) {
   try {
 
     // Remove folder reference from notes.
+
     for (
       const note of notes
     ) {
@@ -761,7 +1081,7 @@ async function deleteFolder(id) {
 
 
     alert(
-      "Could not delete the folder."
+      "Could not update the folder."
     );
 
   }
@@ -856,6 +1176,9 @@ function renderFolders() {
 
         };
 
+
+      // Long press / right click
+      // currently opens folder deletion.
 
       button.oncontextmenu =
         function (event) {
@@ -1177,7 +1500,6 @@ async function autosaveCurrentNote() {
 
       }
 
-
       else {
 
         const note =
@@ -1251,8 +1573,11 @@ async function autosaveCurrentNote() {
     );
 
 
+    // Local cache was already saved
+    // before CloudStorage was attempted.
+
     savedLabel.textContent =
-      "Save failed";
+      "Saved locally";
 
   } finally {
 
@@ -1666,13 +1991,15 @@ async function saveCurrentNote() {
     );
 
 
+    // The local cache was already updated.
+
     savedLabel.textContent =
-      "Save failed";
+      "Saved locally";
 
 
-    alert(
-      "Could not save the note."
-    );
+    renderNotes();
+
+    closeEditorWithoutSave();
 
   } finally {
 
@@ -1753,13 +2080,15 @@ async function togglePin(id) {
     );
 
 
-    note.pinned =
-      previous;
+    // Keep the local change.
 
+    saveNotesToLocal();
 
-    alert(
-      "Could not update the note."
+    sortNotes(
+      notes
     );
+
+    renderNotes();
 
   }
 
@@ -1815,16 +2144,6 @@ async function deleteCurrentNote() {
       currentNoteId;
 
 
-    notes =
-      notes.filter(
-        function (note) {
-
-          return note.id !== id;
-
-        }
-      );
-
-
     await deleteNoteFromCloud(
       id
     );
@@ -1847,9 +2166,16 @@ async function deleteCurrentNote() {
     );
 
 
-    alert(
-      "Could not delete the note."
-    );
+    // Local deletion has already happened.
+
+    currentNoteId =
+      null;
+
+
+    renderNotes();
+
+
+    closeEditorWithoutSave();
 
   } finally {
 
@@ -2245,10 +2571,12 @@ deleteBtn.style.display =
 
 async function startApp() {
 
+  // Load local/cloud folders first.
   await loadFolders();
 
   renderFolderSelect();
 
+  // Then load local/cloud notes.
   await loadNotes();
 
   renderFolders();
