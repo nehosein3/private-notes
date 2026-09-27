@@ -12,6 +12,7 @@ const bodyInput = document.getElementById("bodyInput");
 
 const dirBtn = document.getElementById("dirBtn");
 
+
 function openEditor() {
   app.style.display = "none";
   editor.style.display = "flex";
@@ -22,10 +23,12 @@ function openEditor() {
   titleInput.focus();
 }
 
+
 function closeEditor() {
   editor.style.display = "none";
   app.style.display = "";
 }
+
 
 newBtn.addEventListener("click", openEditor);
 
@@ -35,20 +38,30 @@ backBtn.addEventListener("click", closeEditor);
 
 doneBtn.addEventListener("click", closeEditor);
 
+
 let direction = "auto";
 
+
 dirBtn.addEventListener("click", function () {
+
   if (direction === "auto") {
+
     direction = "rtl";
     dirBtn.textContent = "RTL";
     bodyInput.dir = "rtl";
+
   } else if (direction === "rtl") {
+
     direction = "ltr";
     dirBtn.textContent = "LTR";
     bodyInput.dir = "ltr";
+
   } else {
+
     direction = "auto";
     dirBtn.textContent = "Auto";
     bodyInput.dir = "auto";
+
   }
+
 });
