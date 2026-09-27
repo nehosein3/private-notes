@@ -19,16 +19,32 @@ const bodyInput = document.getElementById("bodyInput");
 const dirBtn = document.getElementById("dirBtn");
 const savedLabel = document.getElementById("savedLabel");
 
+const foldersList =
+  document.getElementById("foldersList");
+
+const allNotesFolder =
+  document.getElementById("allNotesFolder");
+
+const newFolderBtn =
+  document.getElementById("newFolderBtn");
+
+const folderSelect =
+  document.getElementById("folderSelect");
+
 
 // ==================================================
 // Telegram
 // ==================================================
 
-const tg = window.Telegram?.WebApp;
+const tg =
+  window.Telegram?.WebApp;
 
 if (tg) {
+
   tg.ready();
+
   tg.expand();
+
 }
 
 
@@ -36,10 +52,18 @@ if (tg) {
 // CloudStorage
 // ==================================================
 
-const cloudStorage = tg?.CloudStorage || null;
+const cloudStorage =
+  tg?.CloudStorage || null;
 
-const NOTES_INDEX_KEY = "notes_index";
-const NOTE_KEY_PREFIX = "note_";
+
+const NOTES_INDEX_KEY =
+  "notes_index";
+
+const NOTE_KEY_PREFIX =
+  "note_";
+
+const FOLDERS_KEY =
+  "folders";
 
 
 // ==================================================
@@ -48,7 +72,11 @@ const NOTE_KEY_PREFIX = "note_";
 
 let notes = [];
 
+let folders = [];
+
 let currentNoteId = null;
+
+let currentFolderId = null;
 
 let direction = "auto";
 
@@ -72,100 +100,129 @@ let pendingSave = false;
 
 function storageGet(key) {
 
-  return new Promise(function (resolve, reject) {
+  return new Promise(
+    function (resolve, reject) {
 
-    if (!cloudStorage) {
-      reject(
-        new Error(
-          "Telegram CloudStorage is unavailable."
-        )
-      );
+      if (!cloudStorage) {
 
-      return;
-    }
+        reject(
+          new Error(
+            "Telegram CloudStorage is unavailable."
+          )
+        );
 
-    cloudStorage.getItem(
-      key,
-      function (error, value) {
-
-        if (error) {
-          reject(error);
-          return;
-        }
-
-        resolve(value || "");
+        return;
 
       }
-    );
 
-  });
+
+      cloudStorage.getItem(
+        key,
+        function (error, value) {
+
+          if (error) {
+
+            reject(error);
+
+            return;
+
+          }
+
+
+          resolve(
+            value || ""
+          );
+
+        }
+      );
+
+    }
+  );
 
 }
 
 
 function storageSet(key, value) {
 
-  return new Promise(function (resolve, reject) {
+  return new Promise(
+    function (resolve, reject) {
 
-    if (!cloudStorage) {
-      reject(
-        new Error(
-          "Telegram CloudStorage is unavailable."
-        )
-      );
+      if (!cloudStorage) {
 
-      return;
-    }
+        reject(
+          new Error(
+            "Telegram CloudStorage is unavailable."
+          )
+        );
 
-    cloudStorage.setItem(
-      key,
-      value,
-      function (error, success) {
-
-        if (error) {
-          reject(error);
-          return;
-        }
-
-        resolve(success);
+        return;
 
       }
-    );
 
-  });
+
+      cloudStorage.setItem(
+        key,
+        value,
+        function (error, success) {
+
+          if (error) {
+
+            reject(error);
+
+            return;
+
+          }
+
+
+          resolve(success);
+
+        }
+      );
+
+    }
+  );
 
 }
 
 
 function storageRemove(key) {
 
-  return new Promise(function (resolve, reject) {
+  return new Promise(
+    function (resolve, reject) {
 
-    if (!cloudStorage) {
-      reject(
-        new Error(
-          "Telegram CloudStorage is unavailable."
-        )
-      );
+      if (!cloudStorage) {
 
-      return;
-    }
+        reject(
+          new Error(
+            "Telegram CloudStorage is unavailable."
+          )
+        );
 
-    cloudStorage.removeItem(
-      key,
-      function (error, success) {
-
-        if (error) {
-          reject(error);
-          return;
-        }
-
-        resolve(success);
+        return;
 
       }
-    );
 
-  });
+
+      cloudStorage.removeItem(
+        key,
+        function (error, success) {
+
+          if (error) {
+
+            reject(error);
+
+            return;
+
+          }
+
+
+          resolve(success);
+
+        }
+      );
+
+    }
+  );
 
 }
 
@@ -210,9 +267,10 @@ async function loadNotes() {
 
     try {
 
-      ids = JSON.parse(
-        indexValue
-      );
+      ids =
+        JSON.parse(
+          indexValue
+        );
 
     } catch (error) {
 
@@ -224,17 +282,6 @@ async function loadNotes() {
     if (!Array.isArray(ids)) {
 
       ids = [];
-
-    }
-
-
-    if (ids.length === 0) {
-
-      notes = [];
-
-      renderNotes();
-
-      return;
 
     }
 
@@ -266,7 +313,9 @@ async function loadNotes() {
           note.id
         ) {
 
-          loadedNotes.push(note);
+          loadedNotes.push(
+            note
+          );
 
         }
 
@@ -311,6 +360,105 @@ async function loadNotes() {
 
 
 // ==================================================
+// Load Folders
+// ==================================================
+
+async function loadFolders() {
+
+  try {
+
+    if (!cloudStorage) {
+
+      folders = [];
+
+      renderFolders();
+
+      return;
+
+    }
+
+
+    const value =
+      await storageGet(
+        FOLDERS_KEY
+      );
+
+
+    if (!value) {
+
+      folders = [];
+
+      renderFolders();
+
+      return;
+
+    }
+
+
+    let loadedFolders = [];
+
+    try {
+
+      loadedFolders =
+        JSON.parse(value);
+
+    } catch (error) {
+
+      loadedFolders = [];
+
+    }
+
+
+    if (
+      !Array.isArray(
+        loadedFolders
+      )
+    ) {
+
+      loadedFolders = [];
+
+    }
+
+
+    folders =
+      loadedFolders;
+
+
+    renderFolders();
+
+  } catch (error) {
+
+    console.error(
+      "Folder load error:",
+      error
+    );
+
+    folders = [];
+
+    renderFolders();
+
+  }
+
+}
+
+
+// ==================================================
+// Save Folders
+// ==================================================
+
+async function saveFolders() {
+
+  await storageSet(
+    FOLDERS_KEY,
+    JSON.stringify(
+      folders
+    )
+  );
+
+}
+
+
+// ==================================================
 // Sort Notes
 // ==================================================
 
@@ -319,7 +467,6 @@ function sortNotes(list) {
   list.sort(
     function (a, b) {
 
-      // Pinned notes first
       if (
         Boolean(a.pinned) !==
         Boolean(b.pinned)
@@ -332,7 +479,6 @@ function sortNotes(list) {
       }
 
 
-      // Then newest first
       return (
         (b.updatedAt || 0) -
         (a.updatedAt || 0)
@@ -353,14 +499,18 @@ async function saveIndex() {
   const ids =
     notes.map(
       function (note) {
+
         return note.id;
+
       }
     );
 
 
   await storageSet(
     NOTES_INDEX_KEY,
-    JSON.stringify(ids)
+    JSON.stringify(
+      ids
+    )
   );
 
 }
@@ -400,6 +550,436 @@ async function deleteNoteFromCloud(id) {
 
 
 // ==================================================
+// Create Folder
+// ==================================================
+
+async function createFolder() {
+
+  const name =
+    window.prompt(
+      "Folder name:"
+    );
+
+
+  if (!name) {
+    return;
+  }
+
+
+  const cleanName =
+    name.trim();
+
+
+  if (!cleanName) {
+    return;
+  }
+
+
+  const duplicate =
+    folders.some(
+      function (folder) {
+
+        return (
+          folder.name
+            .toLowerCase() ===
+          cleanName.toLowerCase()
+        );
+
+      }
+    );
+
+
+  if (duplicate) {
+
+    alert(
+      "A folder with this name already exists."
+    );
+
+    return;
+
+  }
+
+
+  const folder = {
+
+    id:
+      Date.now().toString() +
+      "_" +
+      Math.random()
+        .toString(36)
+        .slice(2, 7),
+
+    name:
+      cleanName
+
+  };
+
+
+  folders.push(
+    folder
+  );
+
+
+  try {
+
+    await saveFolders();
+
+    renderFolders();
+
+    renderFolderSelect();
+
+    selectFolder(
+      folder.id
+    );
+
+  } catch (error) {
+
+    console.error(
+      "Create folder error:",
+      error
+    );
+
+
+    folders =
+      folders.filter(
+        function (item) {
+
+          return (
+            item.id !==
+            folder.id
+          );
+
+        }
+      );
+
+
+    alert(
+      "Could not create the folder."
+    );
+
+  }
+
+}
+
+
+// ==================================================
+// Delete Folder
+// ==================================================
+
+async function deleteFolder(id) {
+
+  const folder =
+    folders.find(
+      function (item) {
+
+        return item.id === id;
+
+      }
+    );
+
+
+  if (!folder) {
+    return;
+  }
+
+
+  const confirmed =
+    window.confirm(
+      'Delete folder "' +
+      folder.name +
+      '"? Notes will not be deleted.'
+    );
+
+
+  if (!confirmed) {
+    return;
+  }
+
+
+  try {
+
+    // Remove folder reference from notes.
+    for (
+      const note of notes
+    ) {
+
+      if (
+        note.folderId === id
+      ) {
+
+        note.folderId =
+          null;
+
+        note.updatedAt =
+          Date.now();
+
+
+        await saveNoteToCloud(
+          note
+        );
+
+      }
+
+    }
+
+
+    folders =
+      folders.filter(
+        function (item) {
+
+          return item.id !== id;
+
+        }
+      );
+
+
+    await saveFolders();
+
+
+    if (
+      currentFolderId === id
+    ) {
+
+      currentFolderId =
+        null;
+
+    }
+
+
+    renderFolders();
+
+    renderFolderSelect();
+
+    renderNotes();
+
+  } catch (error) {
+
+    console.error(
+      "Delete folder error:",
+      error
+    );
+
+
+    alert(
+      "Could not delete the folder."
+    );
+
+  }
+
+}
+
+
+// ==================================================
+// Render Folders
+// ==================================================
+
+function renderFolders() {
+
+  foldersList.innerHTML =
+    "";
+
+
+  foldersList.appendChild(
+    allNotesFolder
+  );
+
+
+  allNotesFolder.classList.toggle(
+    "active",
+    currentFolderId === null
+  );
+
+
+  folders.forEach(
+    function (folder) {
+
+      const button =
+        document.createElement(
+          "button"
+        );
+
+
+      button.type =
+        "button";
+
+
+      button.className =
+        "folder-item";
+
+
+      button.classList.toggle(
+        "active",
+        currentFolderId === folder.id
+      );
+
+
+      const icon =
+        document.createElement(
+          "span"
+        );
+
+
+      icon.className =
+        "folder-icon";
+
+
+      icon.textContent =
+        "📁";
+
+
+      const label =
+        document.createElement(
+          "span"
+        );
+
+
+      label.textContent =
+        folder.name;
+
+
+      button.appendChild(
+        icon
+      );
+
+
+      button.appendChild(
+        label
+      );
+
+
+      button.onclick =
+        function () {
+
+          selectFolder(
+            folder.id
+          );
+
+        };
+
+
+      button.oncontextmenu =
+        function (event) {
+
+          event.preventDefault();
+
+          deleteFolder(
+            folder.id
+          );
+
+        };
+
+
+      foldersList.appendChild(
+        button
+      );
+
+    }
+  );
+
+}
+
+
+// ==================================================
+// Select Folder
+// ==================================================
+
+function selectFolder(id) {
+
+  currentFolderId =
+    id;
+
+
+  renderFolders();
+
+  renderNotes();
+
+}
+
+
+// ==================================================
+// Render Folder Select
+// ==================================================
+
+function renderFolderSelect() {
+
+  folderSelect.innerHTML =
+    "";
+
+
+  const noFolderOption =
+    document.createElement(
+      "option"
+    );
+
+
+  noFolderOption.value =
+    "";
+
+
+  noFolderOption.textContent =
+    "No Folder";
+
+
+  folderSelect.appendChild(
+    noFolderOption
+  );
+
+
+  folders.forEach(
+    function (folder) {
+
+      const option =
+        document.createElement(
+          "option"
+        );
+
+
+      option.value =
+        folder.id;
+
+
+      option.textContent =
+        folder.name;
+
+
+      folderSelect.appendChild(
+        option
+      );
+
+    }
+  );
+
+
+  if (
+    currentNoteId !== null
+  ) {
+
+    const note =
+      notes.find(
+        function (item) {
+
+          return (
+            item.id ===
+            currentNoteId
+          );
+
+        }
+      );
+
+
+    if (note) {
+
+      folderSelect.value =
+        note.folderId || "";
+
+    }
+
+  }
+
+}
+
+
+// ==================================================
 // Create New Note
 // ==================================================
 
@@ -431,6 +1011,10 @@ function createNewNote() {
     pinned:
       false,
 
+    folderId:
+      folderSelect.value ||
+      null,
+
     createdAt:
       now,
 
@@ -457,7 +1041,11 @@ function getEditorData() {
       bodyInput.value.trim(),
 
     direction:
-      direction
+      direction,
+
+    folderId:
+      folderSelect.value ||
+      null
 
   };
 
@@ -489,7 +1077,7 @@ function scheduleAutosave() {
 
 
 // ==================================================
-// Autosave Current Note
+// Autosave
 // ==================================================
 
 async function autosaveCurrentNote() {
@@ -512,6 +1100,7 @@ async function autosaveCurrentNote() {
     savedLabel.textContent =
       "New Note";
 
+
     return;
 
   }
@@ -519,7 +1108,8 @@ async function autosaveCurrentNote() {
 
   saveGeneration++;
 
-  pendingSave = true;
+  pendingSave =
+    true;
 
 
   if (isSaving) {
@@ -527,14 +1117,18 @@ async function autosaveCurrentNote() {
   }
 
 
-  isSaving = true;
+  isSaving =
+    true;
 
 
   try {
 
-    while (pendingSave) {
+    while (
+      pendingSave
+    ) {
 
-      pendingSave = false;
+      pendingSave =
+        false;
 
 
       const latestData =
@@ -549,6 +1143,7 @@ async function autosaveCurrentNote() {
 
         savedLabel.textContent =
           "New Note";
+
 
         continue;
 
@@ -620,6 +1215,10 @@ async function autosaveCurrentNote() {
           latest.direction;
 
 
+        note.folderId =
+          latest.folderId;
+
+
         note.updatedAt =
           Date.now();
 
@@ -631,13 +1230,13 @@ async function autosaveCurrentNote() {
       }
 
 
-      savedLabel.textContent =
-        "Saved";
-
-
       sortNotes(
         notes
       );
+
+
+      savedLabel.textContent =
+        "Saved";
 
 
       renderNotes();
@@ -657,7 +1256,8 @@ async function autosaveCurrentNote() {
 
   } finally {
 
-    isSaving = false;
+    isSaving =
+      false;
 
   }
 
@@ -675,25 +1275,40 @@ function openNewNote() {
   );
 
 
-  currentNoteId = null;
+  currentNoteId =
+    null;
 
-  titleInput.value = "";
 
-  bodyInput.value = "";
+  titleInput.value =
+    "";
 
-  direction = "auto";
+
+  bodyInput.value =
+    "";
+
+
+  direction =
+    "auto";
+
 
   dirBtn.textContent =
     "Auto";
 
+
   bodyInput.dir =
     "auto";
+
 
   deleteBtn.style.display =
     "none";
 
+
   savedLabel.textContent =
     "New Note";
+
+
+  folderSelect.value =
+    currentFolderId || "";
 
 
   app.style.display =
@@ -712,14 +1327,17 @@ function openNewNote() {
   editor.style.position =
     "fixed";
 
+
   editor.style.inset =
     "0";
+
 
   editor.style.zIndex =
     "99999";
 
+
   editor.style.background =
-    "var(--tg-theme-bg-color, #ffffff)";
+    "var(--card)";
 
 
   titleInput.focus();
@@ -808,6 +1426,9 @@ function openNote(id) {
     "Saved";
 
 
+  renderFolderSelect();
+
+
   app.style.display =
     "none";
 
@@ -824,14 +1445,17 @@ function openNote(id) {
   editor.style.position =
     "fixed";
 
+
   editor.style.inset =
     "0";
+
 
   editor.style.zIndex =
     "99999";
 
+
   editor.style.background =
-    "var(--tg-theme-bg-color, #ffffff)";
+    "var(--card)";
 
 
   titleInput.focus();
@@ -903,7 +1527,7 @@ function closeEditorWithoutSave() {
 
 
 // ==================================================
-// Save Current Note Immediately
+// Save Current Note
 // ==================================================
 
 async function saveCurrentNote() {
@@ -915,7 +1539,8 @@ async function saveCurrentNote() {
 
   saveGeneration++;
 
-  pendingSave = false;
+  pendingSave =
+    false;
 
 
   const title =
@@ -971,7 +1596,6 @@ async function saveCurrentNote() {
 
     }
 
-
     else {
 
       const note =
@@ -1002,6 +1626,11 @@ async function saveCurrentNote() {
           direction;
 
 
+        note.folderId =
+          folderSelect.value ||
+          null;
+
+
         note.updatedAt =
           Date.now();
 
@@ -1027,18 +1656,6 @@ async function saveCurrentNote() {
     renderNotes();
 
 
-    if (
-      tg?.HapticFeedback
-    ) {
-
-      tg.HapticFeedback
-        .notificationOccurred(
-          "success"
-        );
-
-    }
-
-
     closeEditorWithoutSave();
 
   } catch (error) {
@@ -1053,18 +1670,6 @@ async function saveCurrentNote() {
       "Save failed";
 
 
-    if (
-      tg?.HapticFeedback
-    ) {
-
-      tg.HapticFeedback
-        .notificationOccurred(
-          "error"
-        );
-
-    }
-
-
     alert(
       "Could not save the note."
     );
@@ -1077,6 +1682,20 @@ async function saveCurrentNote() {
   }
 
 }
+
+
+// ==================================================
+// Folder Change
+// ==================================================
+
+folderSelect.addEventListener(
+  "change",
+  function () {
+
+    scheduleAutosave();
+
+  }
+);
 
 
 // ==================================================
@@ -1100,10 +1719,14 @@ async function togglePin(id) {
   }
 
 
+  const previous =
+    Boolean(note.pinned);
+
+
   try {
 
     note.pinned =
-      !Boolean(note.pinned);
+      !previous;
 
 
     note.updatedAt =
@@ -1122,18 +1745,6 @@ async function togglePin(id) {
 
     renderNotes();
 
-
-    if (
-      tg?.HapticFeedback
-    ) {
-
-      tg.HapticFeedback
-        .impactOccurred(
-          "light"
-        );
-
-    }
-
   } catch (error) {
 
     console.error(
@@ -1142,9 +1753,8 @@ async function togglePin(id) {
     );
 
 
-    // Revert if saving failed
     note.pinned =
-      !Boolean(note.pinned);
+      previous;
 
 
     alert(
@@ -1176,7 +1786,8 @@ async function deleteCurrentNote() {
   );
 
 
-  pendingSave = false;
+  pendingSave =
+    false;
 
 
   const confirmed =
@@ -1226,18 +1837,6 @@ async function deleteCurrentNote() {
     renderNotes();
 
 
-    if (
-      tg?.HapticFeedback
-    ) {
-
-      tg.HapticFeedback
-        .notificationOccurred(
-          "success"
-        );
-
-    }
-
-
     closeEditorWithoutSave();
 
   } catch (error) {
@@ -1272,14 +1871,37 @@ function renderNotes() {
     "";
 
 
+  const visibleNotes =
+    notes.filter(
+      function (note) {
+
+        if (
+          currentFolderId === null
+        ) {
+
+          return true;
+
+        }
+
+
+        return (
+          note.folderId ===
+          currentFolderId
+        );
+
+      }
+    );
+
+
   countLabel.textContent =
-    notes.length === 1
+    visibleNotes.length === 1
       ? "1 Note"
-      : notes.length + " Notes";
+      : visibleNotes.length +
+        " Notes";
 
 
   if (
-    notes.length === 0
+    visibleNotes.length === 0
   ) {
 
     notesList.style.display =
@@ -1305,7 +1927,7 @@ function renderNotes() {
   );
 
 
-  notes.forEach(
+  visibleNotes.forEach(
     function (note) {
 
       const item =
@@ -1402,18 +2024,11 @@ function renderNotes() {
           : "Pin";
 
 
-      pinButton.setAttribute(
-        "aria-label",
-        note.pinned
-          ? "Unpin note"
-          : "Pin note"
-      );
-
-
       pinButton.onclick =
         function (event) {
 
           event.stopPropagation();
+
 
           togglePin(
             note.id
@@ -1489,7 +2104,7 @@ searchInput.addEventListener(
 
 
 // ==================================================
-// Autosave Input Events
+// Input Autosave
 // ==================================================
 
 titleInput.addEventListener(
@@ -1586,6 +2201,20 @@ emptyNewBtn.onclick =
   openNewNote;
 
 
+newFolderBtn.onclick =
+  createFolder;
+
+
+allNotesFolder.onclick =
+  function () {
+
+    selectFolder(
+      null
+    );
+
+  };
+
+
 backBtn.onclick =
   function () {
 
@@ -1614,4 +2243,19 @@ deleteBtn.style.display =
 // Start App
 // ==================================================
 
-loadNotes();
+async function startApp() {
+
+  await loadFolders();
+
+  renderFolderSelect();
+
+  await loadNotes();
+
+  renderFolders();
+
+  renderNotes();
+
+}
+
+
+startApp();
